@@ -371,6 +371,47 @@
   line-height: 1.5;
 }
 
+.config-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.config-error-banner p {
+  margin: 0;
+  color: #991b1b;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.btn-retry {
+  padding: 6px 12px;
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.btn-retry:hover {
+  background: #b91c1c;
+}
+
+.btn-retry:active {
+  background: #991b1b;
+}
+
 .results-section {
   min-height: 360px;
 }

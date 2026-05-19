@@ -18,14 +18,31 @@ function App() {
     anthropic: false,
     google: false,
   });
+  const [configError, setConfigError] = useState<string | null>(null);
   const { components, isLoading, error, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
-  useEffect(() => {
+  const loadConfig = () => {
+    setConfigError(null);
     fetch('/api/config')
-      .then((res) => res.json())
-      .then((data) => setEnvKeys(data.envKeys))
-      .catch(() => {});
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`서버 오류: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setEnvKeys(data.envKeys);
+        setConfigError(null);
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : '알 수 없는 오류';
+        setConfigError(`설정 로드 실패: ${message}`);
+      });
+  };
+
+  useEffect(() => {
+    loadConfig();
   }, []);
 
   const hasEnvKey = envKeys[provider];
@@ -76,6 +93,14 @@ function App() {
             <span className="panel-kicker">Runtime</span>
             <h2>실행 설정</h2>
           </div>
+          {configError && (
+            <div className="config-error-banner">
+              <p>{configError}</p>
+              <button className="btn-retry" onClick={loadConfig}>
+                재시도
+              </button>
+            </div>
+          )}
           <div className="provider-select">
             <label htmlFor="provider">Provider</label>
             <select
