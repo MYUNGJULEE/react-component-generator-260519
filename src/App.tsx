@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { PromptInput } from './components/PromptInput';
 import { ComponentCard } from './components/ComponentCard';
+import { StreamingCard } from './components/StreamingCard';
 import { useComponentGenerator } from './hooks/useComponentGenerator';
 import type { Provider } from './types';
 import './App.css';
@@ -19,7 +20,7 @@ function App() {
     google: false,
   });
   const [configError, setConfigError] = useState<string | null>(null);
-  const { components, isLoading, error, generate, removeComponent, clearAll } =
+  const { components, isLoading, error, streamingComponent, generate, removeComponent, clearAll } =
     useComponentGenerator();
 
   const loadConfig = () => {
@@ -193,6 +194,9 @@ function App() {
         )}
 
         <div className="results-grid">
+          {streamingComponent && (
+            <StreamingCard component={streamingComponent} />
+          )}
           {components.map((component) => (
             <ComponentCard
               key={component.id}
