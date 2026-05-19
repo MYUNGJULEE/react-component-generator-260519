@@ -45,6 +45,7 @@ render(<GradientButton />);`;
 // Import Provider type from src/types
 // Note: If adding a new provider, update src/types/index.ts first
 import type { Provider } from '../src/types/index.js';
+import { stripCodeFences, ensureRenderCall } from './utils/codeTransform.js';
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -128,22 +129,6 @@ async function callGoogle(prompt: string, apiKey: string): Promise<string> {
   );
 }
 
-function stripCodeFences(text: string): string {
-  return text
-    .replace(/^```(?:jsx|tsx|javascript|typescript)?\n?/gm, '')
-    .replace(/```$/gm, '')
-    .trim();
-}
-
-function ensureRenderCall(code: string): string {
-  if (/\brender\s*\(/.test(code)) return code;
-
-  const match = code.match(/(?:const|function)\s+([A-Z]\w+)/);
-  if (match) {
-    return `${code}\n\nrender(<${match[1]} />);`;
-  }
-  return code;
-}
 
 const server = Bun.serve({
   port: 3002,
