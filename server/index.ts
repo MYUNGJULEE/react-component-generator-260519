@@ -42,13 +42,15 @@ const GradientButton = () => {
 
 render(<GradientButton />);`;
 
+// Import Provider type from src/types
+// Note: If adding a new provider, update src/types/index.ts first
+import type { Provider } from '../src/types/index.js';
+
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
-
-type Provider = 'anthropic' | 'google';
 
 const ENV_KEYS: Record<Provider, string | undefined> = {
   anthropic: process.env.ANTHROPIC_API_KEY,
