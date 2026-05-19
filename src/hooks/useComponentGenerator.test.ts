@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
-import type { GeneratedComponent } from '../types';
+import type { GeneratedComponent, SSEEvent } from '../types';
 import { STORAGE_KEY } from '../utils/storage';
+import { readSSEStream } from './useComponentGenerator';
 
 /**
  * useComponentGenerator Hook Integration Tests
@@ -194,6 +195,80 @@ describe('useComponentGenerator Hook', () => {
     expect(final).toHaveLength(3);
     expect(final[0].id).toBe('4'); // Most recent first
     expect(final.map((c: GeneratedComponent) => c.id)).toEqual(['4', '1', '3']);
+  });
+});
+
+describe('readSSEStream', () => {
+  function makeStream(chunks: string[]): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder();
+    return new ReadableStream({
+      start(controller) {
+        for (const chunk of chunks) {
+          controller.enqueue(encoder.encode(chunk));
+        }
+        controller.close();
+      },
+    });
+  }
+
+  test('token 이벤트를 순서대로 반환한다', async () => {
+    const stream = makeStream([
+      'data: {"type":"token","delta":"const "}\n\n',
+      'data: {"type":"token","delta":"Button"}\n\n',
+    ]);
+    const events: SSEEvent[] = [];
+    for await (const event of readSSEStream(stream)) {
+      events.push(event);
+    }
+    expect(events).toHaveLength(2);
+    expect(events[0]).toEqual({ type: 'token', delta: 'const ' });
+    expect(events[1]).toEqual({ type: 'token', delta: 'Button' });
+  });
+
+  test('done 이벤트를 반환한다', async () => {
+    const code = 'const X = () => null;';
+    const stream = makeStream([`data: ${JSON.stringify({ type: 'done', code })}\n\n`]);
+    const events: SSEEvent[] = [];
+    for await (const event of readSSEStream(stream)) {
+      events.push(event);
+    }
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: 'done', code });
+  });
+
+  test('error 이벤트를 반환한다', async () => {
+    const stream = makeStream(['data: {"type":"error","message":"API 에러"}\n\n']);
+    const events: SSEEvent[] = [];
+    for await (const event of readSSEStream(stream)) {
+      events.push(event);
+    }
+    expect(events[0]).toEqual({ type: 'error', message: 'API 에러' });
+  });
+
+  test('청크가 줄 경계에서 나뉘어도 올바르게 처리한다', async () => {
+    const stream = makeStream([
+      'data: {"type":"token"',
+      ',"delta":"split"}\n\n',
+    ]);
+    const events: SSEEvent[] = [];
+    for await (const event of readSSEStream(stream)) {
+      events.push(event);
+    }
+    expect(events).toHaveLength(1);
+    expect(events[0]).toEqual({ type: 'token', delta: 'split' });
+  });
+
+  test('빈 줄은 이벤트를 생성하지 않는다', async () => {
+    const stream = makeStream([
+      '\n\n',
+      'data: {"type":"token","delta":"hi"}\n\n',
+      '\n\n',
+    ]);
+    const events: SSEEvent[] = [];
+    for await (const event of readSSEStream(stream)) {
+      events.push(event);
+    }
+    expect(events).toHaveLength(1);
   });
 });
 

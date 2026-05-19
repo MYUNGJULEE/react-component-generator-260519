@@ -1,4 +1,4 @@
-import type { GeneratedComponent } from '../types';
+import type { GeneratedComponent, SSEEvent } from '../types';
 
 /**
  * Pure functions for component generation logic
@@ -53,4 +53,32 @@ export function removeComponentById(
  */
 export function clearAllComponents(): GeneratedComponent[] {
   return [];
+}
+
+export function processSSELines(lines: string[]): {
+  deltas: string[];
+  finalCode: string | null;
+  error: string | null;
+} {
+  const deltas: string[] = [];
+  let finalCode: string | null = null;
+  let error: string | null = null;
+
+  for (const line of lines) {
+    if (!line.startsWith('data: ')) continue;
+    try {
+      const event = JSON.parse(line.slice(6)) as SSEEvent;
+      if (event.type === 'token') {
+        deltas.push(event.delta);
+      } else if (event.type === 'done') {
+        finalCode = event.code;
+      } else if (event.type === 'error') {
+        error = event.message;
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+
+  return { deltas, finalCode, error };
 }

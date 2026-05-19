@@ -6,6 +6,7 @@ import {
   addComponent,
   removeComponentById,
   clearAllComponents,
+  processSSELines,
 } from './componentGeneratorLogic';
 
 describe('Component Generator Logic - Pure Functions', () => {
@@ -154,6 +155,73 @@ describe('Component Generator Logic - Pure Functions', () => {
     test('배열 타입이 맞다', () => {
       const result = clearAllComponents();
       expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  describe('processSSELines', () => {
+    test('token 이벤트 줄에서 delta를 추출한다', () => {
+      const lines = ['data: {"type":"token","delta":"const "}'];
+      const result = processSSELines(lines);
+      expect(result.deltas).toEqual(['const ']);
+      expect(result.finalCode).toBeNull();
+      expect(result.error).toBeNull();
+    });
+
+    test('복수 token 이벤트를 순서대로 반환한다', () => {
+      const lines = [
+        'data: {"type":"token","delta":"A"}',
+        'data: {"type":"token","delta":"B"}',
+        'data: {"type":"token","delta":"C"}',
+      ];
+      const result = processSSELines(lines);
+      expect(result.deltas).toEqual(['A', 'B', 'C']);
+    });
+
+    test('done 이벤트에서 finalCode를 반환한다', () => {
+      const code = 'const X = () => null;\n\nrender(<X />);';
+      const lines = [`data: ${JSON.stringify({ type: 'done', code })}`];
+      const result = processSSELines(lines);
+      expect(result.finalCode).toBe(code);
+      expect(result.deltas).toEqual([]);
+      expect(result.error).toBeNull();
+    });
+
+    test('error 이벤트에서 error 메시지를 반환한다', () => {
+      const lines = ['data: {"type":"error","message":"API 에러"}'];
+      const result = processSSELines(lines);
+      expect(result.error).toBe('API 에러');
+      expect(result.deltas).toEqual([]);
+      expect(result.finalCode).toBeNull();
+    });
+
+    test('빈 줄은 무시한다', () => {
+      const lines = ['', 'data: {"type":"token","delta":"hello"}', ''];
+      const result = processSSELines(lines);
+      expect(result.deltas).toEqual(['hello']);
+    });
+
+    test('JSON 파싱 실패 줄은 무시한다 (throw 없음)', () => {
+      const lines = ['data: {invalid', 'data: {"type":"token","delta":"ok"}'];
+      expect(() => processSSELines(lines)).not.toThrow();
+      const result = processSSELines(lines);
+      expect(result.deltas).toEqual(['ok']);
+    });
+
+    test('token과 done이 함께 있으면 둘 다 처리한다', () => {
+      const lines = [
+        'data: {"type":"token","delta":"partial"}',
+        `data: ${JSON.stringify({ type: 'done', code: 'final' })}`,
+      ];
+      const result = processSSELines(lines);
+      expect(result.deltas).toEqual(['partial']);
+      expect(result.finalCode).toBe('final');
+    });
+
+    test('빈 배열 입력 시 모두 null/빈 배열을 반환한다', () => {
+      const result = processSSELines([]);
+      expect(result.deltas).toEqual([]);
+      expect(result.finalCode).toBeNull();
+      expect(result.error).toBeNull();
     });
   });
 });
