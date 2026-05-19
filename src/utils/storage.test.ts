@@ -16,7 +16,7 @@ global.localStorage = {
   },
   length: 0,
   key: () => null,
-} as any;
+} as unknown as Storage;
 
 import { loadComponents, saveComponents, STORAGE_KEY } from './storage';
 
